@@ -1,3 +1,3 @@
 # Text2SQL
 
-»ùÓÚ deepseek ºÍ word2vec ÊµÏÖ
+åŸºäº deepseek å’Œ word2vec å®ç°

@@ -2,8 +2,6 @@
 
 基于 deepseek 和 word2vec
 
-设想的项目结构如下，正在施工中:
-
 ```shell
 text2sql/
 ├── .env                    # 环境变量配置

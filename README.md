@@ -1,37 +1,34 @@
 # Text2SQL
 
-基于 deepseek 和 word2vec
+基于 deepseek 和 BERT 实现的 text to sql 
 
 ```shell
-text2sql/
-├── .env                    # 环境变量配置
-├── .gitignore              # Git忽略文件
-├── README.md               # 项目说明文档
-├── requirements.txt        # 项目依赖
-├── src/
-│   ├── api.py              # API服务
-│   ├── config.py           # 配置模块
-│   ├── main.py             # 入口文件
-│   ├── text2sql_service.py # 核心服务
-│   ├── database/
-│   │   ├── __init__.py
-│   │   ├── connection.py   # 数据库连接
-│   │   ├── schema_manager.py  # 数据库元信息管理
-│   │   └── sql_validator.py   # SQL验证
-│   ├── llm/
-│   │   ├── __init__.py
-│   │   └── deepseek.py     # DeepSeek LLM接口
-│   └── rag/
-│       ├── __init__.py
-│       ├── embedding/
-│       │   ├── __init__.py
-│       │   └── word2vec.py     # Word2Vec实现
-│       └── vectordb/
-│           ├── __init__.py
-│           └── vector_store.py   # 向量存储实现
-├── data/                   # 数据目录(自动创建)
-│   ├── schema_cache.json   # 数据库结构缓存
-│   └── vector_store.pkl    # 向量存储缓存
-└── models/                 # 模型目录(自动创建)
-    └── word2vec.model      # 训练好的Word2Vec模型
+.
+├── README.md
+├── data
+├── requirements.txt
+└── src
+    ├── app.py
+    ├── config.py
+    ├── database
+    │   ├── __init__.py
+    │   ├── connection.py
+    │   ├── connection_local.py
+    │   ├── schema_manager.py
+    │   └── sql_validator.py
+    ├── llm
+    │   ├── __init__.py
+    │   └── deepseek.py
+    ├── main.py
+    ├── rag
+    │   ├── __init__.py
+    │   ├── embedding
+    │   │   ├── __init__.py
+    │   │   └── bert_embedding_model.py
+    │   └── vectordb
+    │       ├── __init__.py
+    │       └── vector_store.py
+    └── text_to_sql.py
 ```
+
+连接数据库有两种方式一种是 ssh 隧道连接，一种是本地连接。分别位于**connection.py**和**connection_local.py**中，项目默认使用 ssh 连接如有需求请自行修改。

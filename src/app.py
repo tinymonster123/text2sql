@@ -25,8 +25,8 @@ class SQLRequest(BaseModel):
 
 class SQLResponse(BaseModel):
     success: bool
-    sql: str = None
-    error: str = None
+    sql: str | None = None
+    error: str | None = None
     columns: list = []
     similar_examples: list = []
 

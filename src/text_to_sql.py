@@ -58,7 +58,7 @@ class Text2SQL:
             logger.error(f"生成 SQL 过程出错:{e}")
             return {
                 "success": False,
-                "sql": None,
+                "sql": "",
                 "error": f"SQL生成过程出错: {str(e)}",
                 "columns": [],
                 "similar_examples": [],

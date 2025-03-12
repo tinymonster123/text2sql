@@ -1,7 +1,7 @@
 import os
-from dotenv import load_env
+from dotenv import load_dotenv
 
-load_env()
+load_dotenv()
 
 class Config:
     SSH_HOST = os.getenv("SSH_HOST")
@@ -11,5 +11,7 @@ class Config:
     DB_NAME = os.getenv("DB_NAME")
     DB_USER = os.getenv("DB_USER")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
-    BERT_MODEL_NAME = os.getenv("BERT_MODEL_NAME", "paraphrase-multilingual-MiniLM-L12-v2")  # 默认使用多语言模型
+    API_KEY = os.getenv("API_KEY")
+    BASE_URL = os.getenv("BASE_URL")
+    BERT_MODEL_NAME = os.getenv("BERT_MODEL_NAME", "paraphrase-multilingual-MiniLM-L12-v2")  # 榛樿浣跨敤澶氳瑷€妯″瀷
     

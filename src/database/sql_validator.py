@@ -5,6 +5,7 @@ import re
 import shutil
 import sqlparse
 from .connection import MySQLSSHConnection
+from typing import Tuple, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,20 +14,26 @@ class SQLValidator:
     """SQL验证器
 
     用于验证SQL查询的语法正确性和安全性，并提供测试执行功能。
+    主要功能包括：
+    - SQL语法验证
+    - 查询安全性检查
+    - 查询执行测试
+    - 磁盘空间检查
+    - 结果集大小限制
     """
 
     def __init__(self):
         """初始化SQL验证器"""
         self.connection = MySQLSSHConnection()
 
-    def validate_syntax(self, sql_query: str) -> tuple[bool, str]:
+    def validate_syntax(self, sql_query: str) -> Tuple[bool, str]:
         """验证SQL语法是否正确
 
         Args:
             sql_query: 要验证的SQL查询语句
 
         Returns:
-            tuple[bool, str]:
+            Tuple[bool, str]:
                 - bool: 表示是否有效
                 - str: 错误信息（如果有）
         """
@@ -46,17 +53,17 @@ class SQLValidator:
             logger.error(f"SQL语法验证失败: {str(e)}")
             return False, f"SQL验证错误: {str(e)}"
 
-    def test_execute(self, sql_query: str) -> tuple[bool, str, list]:
+    def test_execute(self, sql_query: str) -> Tuple[bool, str, List[str]]:
         """测试执行SQL查询
 
         Args:
             sql_query: 要执行的SQL查询语句
 
         Returns:
-            tuple[bool, str, list]:
+            Tuple[bool, str, List[str]]:
                 - bool: 表示是否执行成功
                 - str: 错误信息或成功消息
-                - list: 查询结果的列名列表
+                - List[str]: 查询结果的列名列表
         """
         try:
             # 首先验证语法
@@ -116,29 +123,48 @@ class SQLValidator:
     def _limit_query_results(self, sql_query: str) -> str:
         """限制查询结果集大小
 
+        处理原始SQL查询，添加LIMIT子句以限制返回的结果数量，
+        同时处理可能存在的结尾分号，保证语法正确。
+
         Args:
             sql_query: 原始SQL查询
 
         Returns:
             str: 添加了LIMIT子句的SQL查询
         """
+        # 处理输入
+        if not sql_query or not isinstance(sql_query, str):
+            logger.warning("收到无效的SQL查询")
+            return sql_query
+
+        # 去除首尾空白字符
         sql = sql_query.strip()
+
+        # 检查是否以分号结尾
+        ends_with_semicolon = sql.endswith(";")
+        if ends_with_semicolon:
+            sql = sql[:-1]
 
         # 如果已经有LIMIT子句，不做修改
         if re.search(r"\bLIMIT\s+\d+", sql, re.IGNORECASE):
-            return sql
+            return sql_query  # 返回原始查询
 
-        # 添加LIMIT子句
-        return f"{sql} LIMIT 10"
+        # 添加LIMIT子句并处理分号
+        limited_sql = f"{sql} LIMIT 10"
+        if ends_with_semicolon:
+            limited_sql += ";"
 
-    def _process_query_results(self, cursor) -> tuple[bool, str, list]:
+        logger.info(f"添加限制后的SQL: {limited_sql}")
+        return limited_sql
+
+    def _process_query_results(self, cursor) -> Tuple[bool, str, List[str]]:
         """处理查询结果
 
         Args:
             cursor: 数据库游标
 
         Returns:
-            tuple[bool, str, list]: 执行结果、消息和列名列表
+            Tuple[bool, str, List[str]]: 执行结果、消息和列名列表
         """
         if hasattr(cursor, "description") and cursor.description:
             if isinstance(cursor.description[0], tuple):
@@ -153,14 +179,14 @@ class SQLValidator:
             logger.info("SQL验证成功，但无结果集")
             return True, "查询有效 (无结果集)", []
 
-    def _handle_execution_error(self, error: Exception) -> tuple[bool, str, list]:
+    def _handle_execution_error(self, error: Exception) -> Tuple[bool, str, List[str]]:
         """处理执行过程中的错误
 
         Args:
             error: 捕获的异常
 
         Returns:
-            tuple[bool, str, list]: 错误处理结果
+            Tuple[bool, str, List[str]]: 错误处理结果
         """
         error_str = str(error)
         logger.error(f"SQL执行错误: {error_str}")

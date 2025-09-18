@@ -5,9 +5,6 @@ load_dotenv()
 
 
 class Config:
-    # 环境配置
-    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # development 或 production
-
     # 数据库配置
     USER_DATABASE_URL = os.getenv("USER_DATABASE_URL")  # 用户认证数据库
     MUSIC_DATABASE_URL = os.getenv("MUSIC_DATABASE_URL")  # 音乐数据库
@@ -23,6 +20,7 @@ class Config:
     )
 
     # ChromaDB配置
-    CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
-    CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
-    CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "text2sql_collection")
+    CHROMA_API_KEY = os.getenv("CHROMA_API_KEY")
+    CHROMA_TENANT = os.getenv("CHROMA_TENANT")
+    CHROMA_DATABASE = os.getenv("CHROMA_DATABASE")
+    CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "melomane_collection")

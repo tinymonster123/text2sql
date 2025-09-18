@@ -5,13 +5,12 @@ load_dotenv()
 
 
 class Config:
-    SSH_HOST = os.getenv("SSH_HOST")
-    SSH_USER = os.getenv("SSH_USER")
-    SSH_KEY_PATH = os.getenv("SSH_KEY_PATH")
-    DB_HOST = os.getenv("DB_HOST")
-    DB_NAME = os.getenv("DB_NAME")
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    # 环境配置
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # development 或 production
+
+    # 数据库配置
+    USER_DATABASE_URL = os.getenv("USER_DATABASE_URL")  # 用户认证数据库
+    MUSIC_DATABASE_URL = os.getenv("MUSIC_DATABASE_URL")  # 音乐数据库
 
     # LLM配置
     API_KEY = os.getenv("API_KEY")
@@ -27,6 +26,3 @@ class Config:
     CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
     CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
     CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "text2sql_collection")
-
-    # 兼容旧版本
-    DEEPSEEK = os.getenv("DEEPSEEK")  # 保留兼容性

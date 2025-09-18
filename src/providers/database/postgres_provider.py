@@ -15,24 +15,21 @@ class PostgreSQLProvider(BaseDatabaseProvider):
         self.connection_config = {}
         self.connection = None
 
-    def initialize(self, config: Dict[str, Any]) -> bool:
+    def initialize(self, database_url: str) -> bool:
         """初始化PostgreSQL提供商"""
         try:
-            self.connection_config = {
-                "host": config.get("host"),
-                "port": config.get("port", 5432),
-                "database": config.get("database"),
-                "user": config.get("user"),
-                "password": config.get("password"),
-                "sslmode": config.get("sslmode", "require")
-            }
+            if not database_url:
+                raise ValueError("DATABASE_URL is required")
+
+            # 直接使用DATABASE_URL连接
+            self.database_url = database_url
 
             # 测试连接
-            test_conn = psycopg2.connect(**self.connection_config)
+            test_conn = psycopg2.connect(database_url)
             test_conn.close()
 
             self.is_initialized = True
-            logger.info(f"PostgreSQL提供商初始化成功: {self.connection_config['host']}:{self.connection_config['port']}")
+            logger.info(f"PostgreSQL提供商初始化成功")
             return True
 
         except Exception as e:
@@ -41,7 +38,7 @@ class PostgreSQLProvider(BaseDatabaseProvider):
 
     def _get_connection(self):
         """获取数据库连接"""
-        return psycopg2.connect(**self.connection_config)
+        return psycopg2.connect(self.database_url)
 
     def get_schema(self) -> Dict[str, Any]:
         """获取PostgreSQL数据库结构信息"""
@@ -175,8 +172,6 @@ class PostgreSQLProvider(BaseDatabaseProvider):
         info = super().get_info()
         if self.is_initialized:
             info.update({
-                "host": self.connection_config.get("host"),
-                "port": self.connection_config.get("port"),
-                "database": self.connection_config.get("database")
+                "database_url": "***configured***"  # 隐藏敏感信息
             })
         return info

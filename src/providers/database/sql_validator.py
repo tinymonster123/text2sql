@@ -27,16 +27,8 @@ class SQLValidator:
         """初始化SQL验证器"""
         self.db_provider = PostgreSQLProvider()
 
-        # 初始化数据库连接
-        db_config = {
-            "host": Config.DB_HOST,
-            "port": int(Config.DB_PORT),
-            "database": Config.DB_NAME,
-            "user": Config.DB_USER,
-            "password": Config.DB_PASSWORD,
-            "sslmode": Config.DB_SSLMODE
-        }
-        self.db_provider.initialize(db_config)
+        # 初始化数据库连接 (使用音乐数据库)
+        self.db_provider.initialize(Config.MUSIC_DATABASE_URL)
 
     def validate_syntax(self, sql_query: str) -> Tuple[bool, str]:
         """验证SQL语法是否正确

@@ -19,16 +19,8 @@ class SchemaManager:
         self.db_provider = PostgreSQLProvider()
         self.schema_cache_path = "data/schema_cache.json"
 
-        # 初始化数据库连接
-        db_config = {
-            "host": Config.DB_HOST,
-            "port": int(Config.DB_PORT),
-            "database": Config.DB_NAME,
-            "user": Config.DB_USER,
-            "password": Config.DB_PASSWORD,
-            "sslmode": Config.DB_SSLMODE
-        }
-        self.db_provider.initialize(db_config)
+        # 初始化数据库连接 (使用音乐数据库)
+        self.db_provider.initialize(Config.MUSIC_DATABASE_URL)
 
     def extract_schema(self, force_refresh=False):
         """提取数据库Schema信息

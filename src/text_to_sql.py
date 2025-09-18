@@ -3,7 +3,7 @@ from .database.schema_manager import SchemaManager
 from .database.sql_validator import SQLValidator
 from .rag.embedding.bert_embedding_model import BertEmbedding
 from .rag.vectordb.chroma_vector_store import ChromaVectorStore
-from .llm.llm import LLM
+from .providers.llm.llm import LLM
 import logging
 from typing import Dict, List, Optional, Any
 

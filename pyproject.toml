@@ -1,0 +1,94 @@
+[project]
+name = "text2sql"
+version = "1.0.0"
+description = "可扩展的AI中间件 - Text2SQL引擎"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    # Web框架
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "pydantic>=2.10.0",
+
+    # 数据库相关
+    "psycopg2-binary>=2.9.0",
+    "sqlparse>=0.5.0",
+    "SQLAlchemy>=2.0.0",
+    "pymysql>=1.1.0",
+    "sshtunnel>=0.4.0",
+
+    # AI/ML相关
+    "openai>=1.65.0",
+    "sentence-transformers>=3.4.0",
+    "transformers>=4.49.0",
+    "torch>=2.6.0",
+    "scikit-learn>=1.6.0",
+    "numpy>=1.26.0",
+
+    # 向量数据库
+    "chromadb>=0.5.20",
+
+    # 评估工具
+    "ragas>=0.2.0",
+    "datasets>=3.2.0",
+
+    # 工具库
+    "python-dotenv>=1.0.0",
+    "paramiko>=3.5.0",
+    "requests>=2.32.0",
+    "pyyaml>=6.0.0",
+    "nltk>=3.9.0",
+    "pandas>=2.2.0",
+
+    # 开发工具
+    "black>=25.1.0",
+    "pytest>=8.3.0",
+    "datacompy>=0.18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipython",
+    "jupyter",
+    "notebook",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "ipython",
+    "jupyter",
+    "notebook",
+]
+
+[tool.uv.sources]
+
+[tool.black]
+line-length = 88
+target-version = ['py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

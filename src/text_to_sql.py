@@ -2,8 +2,8 @@
 from .database.schema_manager import SchemaManager
 from .database.sql_validator import SQLValidator
 from .rag.embedding.bert_embedding_model import BertEmbedding
-from .rag.vectordb.vector_store import InMemoryVectorStore
-from .llm.deepseek import Deepseek
+from .rag.vectordb.chroma_vector_store import ChromaVectorStore
+from .llm.llm import LLM
 import logging
 from typing import Dict, List, Optional, Any
 
@@ -21,13 +21,20 @@ class Text2SQL:
     - SQL验证
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        chroma_host: str = None,
+        chroma_port: int = None,
+        db_host: str = None,
+        db_port: int = None,
+    ):
         """初始化Text2SQL系统的各个组件"""
-        self.schema_manager = SchemaManager()
+        logger.debug(f"Text2SQL.__init__ 调用，db_host={db_host}, db_port={db_port}")
+        self.schema_manager = SchemaManager(db_host=db_host, db_port=db_port)
         self.bert_embedding_model = BertEmbedding()
-        self.vectore_store = InMemoryVectorStore()
-        self.deepseek = Deepseek()
-        self.sql_validator = SQLValidator()
+        self.vector_store = ChromaVectorStore(host=chroma_host, port=chroma_port)
+        self.llm = LLM()
+        self.sql_validator = SQLValidator(db_host=db_host, db_port=db_port)
 
     def generate_sql(self, prompt: str) -> Dict[str, Any]:
         """生成SQL查询语句
@@ -59,13 +66,21 @@ class Text2SQL:
 
             # 从向量存储库中搜索相似问题
             logger.info("开始搜索相似查询")
-            similar_example = self.vectore_store.search(prompt_to_vector)
+            similar_example = self.vector_store.search(prompt_to_vector)
             examples = [metadata for _, metadata in similar_example]
             logger.info(f"找到 {len(examples)} 个相似查询")
+            if examples:
+                import json
+
+                logger.info(
+                    f"检索到的 Few-shot 示例:\n{json.dumps(examples, indent=2, ensure_ascii=False)}"
+                )
 
             # 使用LLM生成SQL语句
             logger.info("开始生成SQL语句")
-            sql = self.deepseek.get_response(prompt, format_schema_for_prompt)
+            sql = self.llm.get_response(
+                prompt, format_schema_for_prompt, few_shot_example=examples
+            )
             logger.info(f"生成的SQL: {sql}")
 
             # 验证生成的SQL
@@ -91,8 +106,8 @@ class Text2SQL:
             if is_sql_safe:
                 logger.info("SQL验证通过，保存到向量存储")
                 metadata = {"question": prompt, "sql": sql}
-                self.vectore_store.add_vector(prompt_to_vector, metadata)
-                self.vectore_store.save()
+                self.vector_store.add_vector(prompt_to_vector, metadata)
+                self.vector_store.save()
             else:
                 logger.warning(f"SQL验证失败: {error_message}")
 
@@ -103,6 +118,7 @@ class Text2SQL:
                 "error": error_message if not is_sql_safe else None,
                 "columns": columns if is_sql_safe else [],
                 "similar_examples": examples[:3],  # 仅返回前3个示例
+                "schema_info": format_schema_for_prompt,  # 添加格式化的schema信息用于Ragas评估
             }
 
         except Exception as e:
@@ -113,4 +129,5 @@ class Text2SQL:
                 "error": f"SQL生成过程出错: {str(e)}",
                 "columns": [],
                 "similar_examples": [],
+                "schema_info": "",
             }

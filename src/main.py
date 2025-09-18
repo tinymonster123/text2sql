@@ -1,6 +1,6 @@
 import uvicorn
 import logging
-from .app import app
+from . import app
 
 # 配置日志
 logging.basicConfig(

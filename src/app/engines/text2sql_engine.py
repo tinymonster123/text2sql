@@ -23,19 +23,8 @@ class Text2SQLEngine(AIEngine):
     def initialize(self, config: Dict[str, Any]) -> bool:
         """初始化Text2SQL引擎"""
         try:
-            # 从配置中获取参数
-            chroma_host = config.get("chroma_host")
-            chroma_port = config.get("chroma_port")
-            db_host = config.get("db_host")
-            db_port = config.get("db_port")
-
-            # 初始化Text2SQL服务
-            self.text2sql_service = Text2SQL(
-                chroma_host=chroma_host,
-                chroma_port=chroma_port,
-                db_host=db_host,
-                db_port=db_port
-            )
+            # 初始化Text2SQL服务 (不再需要配置参数)
+            self.text2sql_service = Text2SQL()
 
             # 添加能力描述
             self.add_capability(EngineCapability(

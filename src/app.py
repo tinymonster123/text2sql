@@ -43,7 +43,7 @@ def create_app(middleware=None):
         description="可扩展的AI中间件 - 自然语言转SQL查询服务",
         version="1.0.0",
         docs_url="/docs",
-        redoc_url="/redoc"
+        redoc_url="/redoc",
     )
 
     @app.get("/", response_model=dict)
@@ -55,7 +55,7 @@ def create_app(middleware=None):
             "description": "可扩展的AI中间件 - 自然语言转SQL查询服务",
             "engines": list(middleware._engines.keys()) if middleware else [],
             "docs": "/docs",
-            "health": "/health"
+            "health": "/health",
         }
 
     @app.get("/health", response_model=HealthResponse)
@@ -65,7 +65,10 @@ def create_app(middleware=None):
             if not middleware:
                 return JSONResponse(
                     status_code=503,
-                    content={"status": "unhealthy", "error": "middleware not initialized"}
+                    content={
+                        "status": "unhealthy",
+                        "error": "middleware not initialized",
+                    },
                 )
 
             # 获取系统信息
@@ -87,15 +90,14 @@ def create_app(middleware=None):
                 content={
                     "status": "healthy" if all_healthy else "unhealthy",
                     "middleware_info": system_info,
-                    "engines": engine_health
-                }
+                    "engines": engine_health,
+                },
             )
 
         except Exception as e:
             logger.error(f"健康检查失败: {e}")
             return JSONResponse(
-                status_code=503,
-                content={"status": "error", "error": str(e)}
+                status_code=503, content={"status": "error", "error": str(e)}
             )
 
     @app.get("/engines")
@@ -106,12 +108,9 @@ def create_app(middleware=None):
 
         return {
             "engines": {
-                name: engine.get_info()
-                for name, engine in middleware._engines.items()
+                name: engine.get_info() for name, engine in middleware._engines.items()
             },
-            "engine_types": {
-                k.value: v for k, v in middleware._engine_types.items()
-            }
+            "engine_types": {k.value: v for k, v in middleware._engine_types.items()},
         }
 
     @app.get("/engines/{engine_name}/capabilities")
@@ -132,17 +131,17 @@ def create_app(middleware=None):
                     "description": cap.description,
                     "input_types": cap.input_types,
                     "output_types": cap.output_types,
-                    "parameters": cap.parameters
+                    "parameters": cap.parameters,
                 }
                 for cap in engine.get_capabilities()
-            ]
+            ],
         }
 
     @app.get("/generate-sql", response_model=SQLResponse)
     async def generate_sql_get(
         query: str = Query(..., description="自然语言查询"),
         user_id: Optional[str] = Query(None, description="用户ID"),
-        session_id: Optional[str] = Query(None, description="会话ID")
+        session_id: Optional[str] = Query(None, description="会话ID"),
     ):
         """通过GET请求生成SQL查询"""
         request = SQLRequest(query=query, user_id=user_id, session_id=session_id)
@@ -166,13 +165,13 @@ def create_app(middleware=None):
                 user_id=data.get("user_id"),
                 session_id=data.get("session_id"),
                 metadata=data.get("metadata", {}),
-                headers=data.get("headers", {})
+                headers=data.get("headers", {}),
             )
 
             result = await middleware.process_request(
                 engine_name=engine_name,
                 input_data=data.get("input_data", {}),
-                context=context
+                context=context,
             )
 
             return result
@@ -195,15 +194,14 @@ async def process_sql_request(request: SQLRequest, middleware) -> SQLResponse:
         from core.middleware import ProcessingContext
 
         context = ProcessingContext(
-            user_id=request.user_id,
-            session_id=request.session_id
+            user_id=request.user_id, session_id=request.session_id
         )
 
         # 使用中间件处理请求
         result = await middleware.process_request(
             engine_name="text2sql_engine",
             input_data={"query": request.query},
-            context=context
+            context=context,
         )
 
         if result["success"]:
@@ -214,7 +212,7 @@ async def process_sql_request(request: SQLRequest, middleware) -> SQLResponse:
                 error=data.get("error"),
                 columns=data.get("columns", []),
                 similar_examples=data.get("similar_examples", []),
-                metadata=data.get("metadata", {})
+                metadata=data.get("metadata", {}),
             )
         else:
             return SQLResponse(
@@ -222,7 +220,7 @@ async def process_sql_request(request: SQLRequest, middleware) -> SQLResponse:
                 error=result.get("error", "未知错误"),
                 sql="",
                 columns=[],
-                similar_examples=[]
+                similar_examples=[],
             )
 
     except Exception as e:
@@ -230,5 +228,4 @@ async def process_sql_request(request: SQLRequest, middleware) -> SQLResponse:
         raise HTTPException(status_code=500, detail=f"服务器错误: {str(e)}")
 
 
-# 为了兼容性，保留原有的app实例创建方式
 app = create_app()

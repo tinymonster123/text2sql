@@ -1,11 +1,12 @@
+# pylint: disable=astroid-error
 # -*- coding: utf-8 -*-
-from .database.schema_manager import SchemaManager
-from .database.sql_validator import SQLValidator
+from .providers.database.schema_manager import SchemaManager
+from .providers.database.sql_validator import SQLValidator
 from .rag.embedding.bert_embedding_model import BertEmbedding
-from .rag.vectordb.chroma_vector_store import ChromaVectorStore
+from .providers.vectordb.chroma_vector_store import ChromaVectorStore
 from .providers.llm.llm import LLM
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,20 +22,14 @@ class Text2SQL:
     - SQL验证
     """
 
-    def __init__(
-        self,
-        chroma_host: str = None,
-        chroma_port: int = None,
-        db_host: str = None,
-        db_port: int = None,
-    ):
+    def __init__(self):
         """初始化Text2SQL系统的各个组件"""
-        logger.debug(f"Text2SQL.__init__ 调用，db_host={db_host}, db_port={db_port}")
-        self.schema_manager = SchemaManager(db_host=db_host, db_port=db_port)
+        logger.debug("Text2SQL.__init__ 调用")
+        self.schema_manager = SchemaManager()
         self.bert_embedding_model = BertEmbedding()
-        self.vector_store = ChromaVectorStore(host=chroma_host, port=chroma_port)
+        self.vector_store = ChromaVectorStore()
         self.llm = LLM()
-        self.sql_validator = SQLValidator(db_host=db_host, db_port=db_port)
+        self.sql_validator = SQLValidator()
 
     def generate_sql(self, prompt: str) -> Dict[str, Any]:
         """生成SQL查询语句
@@ -87,7 +82,6 @@ class Text2SQL:
             logger.info("开始验证SQL")
             is_sql_safe, error_message, columns = self.sql_validator.test_execute(sql)
 
-            # 处理磁盘空间不足的情况
             if not is_sql_safe and any(
                 error in error_message.lower()
                 for error in ["space left on device", "disk full"]
@@ -117,8 +111,8 @@ class Text2SQL:
                 "sql": sql,
                 "error": error_message if not is_sql_safe else None,
                 "columns": columns if is_sql_safe else [],
-                "similar_examples": examples[:3],  # 仅返回前3个示例
-                "schema_info": format_schema_for_prompt,  # 添加格式化的schema信息用于Ragas评估
+                "similar_examples": examples[:3],
+                "schema_info": format_schema_for_prompt,
             }
 
         except Exception as e:

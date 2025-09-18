@@ -91,7 +91,7 @@ class ChromaVectorStore:
         logger.info(f"Chroma集合 '{self.collection_name}' 已清空并重建")
 
     def save(self):
-        logger.info(f"服务器 '{Config.CHROMA_HOST}' 上的 ChromaDB 会自动持久化数据")
+        logger.info("ChromaDB Cloud 会自动持久化数据")
 
     def load(self):
         try:

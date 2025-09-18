@@ -4,7 +4,8 @@ import os
 import re
 import shutil
 import sqlparse
-from .connection import MySQLSSHConnection
+from ..database import PostgreSQLProvider
+from ...config import Config
 from typing import Tuple, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,18 @@ class SQLValidator:
 
     def __init__(self):
         """初始化SQL验证器"""
-        self.connection = MySQLSSHConnection()
+        self.db_provider = PostgreSQLProvider()
+
+        # 初始化数据库连接
+        db_config = {
+            "host": Config.DB_HOST,
+            "port": int(Config.DB_PORT),
+            "database": Config.DB_NAME,
+            "user": Config.DB_USER,
+            "password": Config.DB_PASSWORD,
+            "sslmode": Config.DB_SSLMODE
+        }
+        self.db_provider.initialize(db_config)
 
     def validate_syntax(self, sql_query: str) -> Tuple[bool, str]:
         """验证SQL语法是否正确
@@ -71,30 +83,22 @@ class SQLValidator:
             if not valid:
                 return False, error_msg, []
 
-            # 获取数据库连接和游标
-            cursor = self.connection.connect()
+            # 使用PostgreSQL provider进行验证
+            is_valid, error_message = self.db_provider.validate_sql(sql_query)
+            if not is_valid:
+                return False, error_message, []
 
-            # 检查磁盘空间
-            self._check_disk_space()
+            # 执行SQL并获取结果
+            success, error_msg, columns = self.db_provider.execute_sql(self._limit_query_results(sql_query))
 
-            # 设置查询超时和限制
-            cursor.execute("SET SESSION MAX_EXECUTION_TIME=5000")  # 5秒超时
-
-            # 限制结果集大小
-            limited_query = self._limit_query_results(sql_query)
-            logger.info(f"执行限制后的SQL: {limited_query}")
-
-            # 执行查询
-            cursor.execute(limited_query)
-
-            # 获取并处理结果集信息
-            return self._process_query_results(cursor)
+            if success:
+                logger.info(f"SQL验证成功, 列名: {columns}")
+                return True, "查询有效", columns or []
+            else:
+                return False, error_msg, []
 
         except Exception as e:
             return self._handle_execution_error(e)
-
-        finally:
-            self.connection.close()
 
     def _is_safe_query(self, sql_query: str) -> bool:
         """检查是否是安全的查询（只读操作）

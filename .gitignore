@@ -3,3 +3,9 @@
 *.pem
 
 /venv
+
+.DS_Store
+
+*.csv
+
+Modal.*

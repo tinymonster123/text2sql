@@ -14,26 +14,41 @@
 ## 🏗️ 架构概览
 
 ```
-text2sql/
-├── src/
-│   ├── core/                 # 核心中间件架构
-│   │   ├── ai_engine.py     # AI引擎抽象基类
-│   │   └── middleware.py    # 中间件核心逻辑
-│   ├── engines/              # AI引擎实现
-│   │   ├── text2sql_engine.py # Text2SQL引擎
-│   │   └── __init__.py
-│   ├── database/             # 数据库相关模块
-│   ├── llm/                  # LLM相关模块
-│   ├── rag/                  # RAG相关模块
-│   ├── app.py               # FastAPI应用
-│   └── text_to_sql.py       # 原有Text2SQL实现
-├── scripts/
-│   ├── startup.py           # 统一启动脚本
-│   └── download_model.py    # 模型预下载脚本
-├── pyproject.toml           # 项目配置（uv管理）
-├── Dockerfile               # 容器化配置
-├── docker-compose.yml       # 服务编排
-└── .env.example            # 环境配置示例
+melomane_ai/
+├── .env.example                    # 环境变量配置示例
+├── .gitignore                      # Git忽略文件配置
+├── CLAUDE.md                       # Claude Code 开发指南
+├── Modal.md                        # Modal 部署说明
+├── README.md                       # 项目说明文档
+├── pyproject.toml                  # uv项目配置和依赖管理
+├── uv.lock                         # 依赖锁定文件
+├── tcc_ceds_music.csv             # 示例数据文件
+└── src/                           # 源代码目录
+    ├── app/                       # 应用核心代码
+    │   ├── core/                  # 核心架构组件
+    │   │   ├── ai_engine.py       # AI引擎抽象基类
+    │   │   └── middleware.py      # 中间件核心逻辑
+    │   ├── engines/               # AI引擎实现
+    │   │   └── text2sql_engine.py # Text2SQL引擎实现
+    │   ├── providers/             # 数据提供者
+    │   │   ├── database/          # 数据库提供者
+    │   │   │   ├── base_provider.py      # 数据库基础接口
+    │   │   │   ├── postgres_provider.py  # PostgreSQL实现
+    │   │   │   ├── schema_manager.py     # 数据库模式管理
+    │   │   │   └── sql_validator.py      # SQL验证器
+    │   │   └── vectordb/          # 向量数据库提供者
+    │   │       └── chroma_vector_store.py # ChromaDB实现
+    │   └── services/              # 业务服务层
+    │       └── text2sql/          # Text2SQL服务
+    │           ├── embedding/     # 嵌入模型
+    │           │   └── bert_embedding_model.py
+    │           ├── llm/           # 大语言模型
+    │           │   ├── llm.py     # LLM接口实现
+    │           │   └── prompts.py # 提示词模板
+    │           └── text_to_sql.py # 核心转换逻辑
+    ├── app.py                     # FastAPI应用工厂
+    ├── config.py                  # 配置管理
+    └── main.py                    # 应用入口点
 ```
 
 ## 🚀 快速开始
@@ -43,7 +58,7 @@ text2sql/
 ```bash
 # 1. 克隆项目
 git clone <repository-url>
-cd text2sql
+cd melomane_ai
 
 # 2. 配置环境变量
 cp .env.example .env
@@ -69,7 +84,7 @@ uv sync
 cp .env.example .env
 
 # 4. 启动服务
-uv run python scripts/startup.py
+uv run python src/main.py
 ```
 
 ## 📡 API接口
@@ -134,8 +149,8 @@ curl -X POST "http://localhost:8000/generate-sql" \
 ### 自定义引擎
 
 ```python
-from core.ai_engine import AIEngine, EngineCapability
-from core.middleware import AIMiddleware, EngineType
+from app.core.ai_engine import AIEngine, EngineCapability
+from app.core.middleware import AIMiddleware, EngineType
 
 class CustomEngine(AIEngine):
     def __init__(self):
@@ -187,9 +202,10 @@ curl http://localhost:8000/engines
 
 ### 项目结构
 
-- **核心架构** (`src/core/`): AI中间件的核心组件
-- **引擎实现** (`src/engines/`): 各种AI引擎的具体实现
-- **原有模块**: 数据库、LLM、RAG等功能模块保持不变
+- **核心架构** (`src/app/core/`): AI中间件的核心组件
+- **引擎实现** (`src/app/engines/`): 各种AI引擎的具体实现
+- **数据提供者** (`src/app/providers/`): 数据库和向量数据库提供者
+- **业务服务** (`src/app/services/`): Text2SQL等业务逻辑实现
 
 ### 添加新引擎
 
@@ -202,6 +218,8 @@ curl http://localhost:8000/engines
 支持添加自定义钩子来扩展功能：
 
 ```python
+from app.core.middleware import MiddlewareHook
+
 class CustomHook(MiddlewareHook):
     async def before_process(self, engine_name, input_data, context):
         # 前置处理

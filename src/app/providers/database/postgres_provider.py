@@ -71,31 +71,39 @@ class PostgreSQLProvider(BaseDatabaseProvider):
                     # 组织数据结构
                     schema_info = {}
                     for row in results:
-                        table_name = row['table_name']
-                        column_name = row['column_name']
+                        table_name = row["table_name"]
+                        column_name = row["column_name"]
 
                         if table_name not in schema_info:
                             schema_info[table_name] = {
                                 "columns": [],
                                 "primary_keys": [],
-                                "foreign_keys": []
+                                "foreign_keys": [],
                             }
 
                         if column_name:  # 确保列名不为空
                             column_info = {
                                 "name": column_name,
-                                "type": row['data_type'],
-                                "nullable": row['is_nullable'] == "YES",
-                                "default": row['column_default']
+                                "type": row["data_type"],
+                                "nullable": row["is_nullable"] == "YES",
+                                "default": row["column_default"],
                             }
 
                             # 避免重复添加列
-                            if not any(col['name'] == column_name for col in schema_info[table_name]["columns"]):
+                            if not any(
+                                col["name"] == column_name
+                                for col in schema_info[table_name]["columns"]
+                            ):
                                 schema_info[table_name]["columns"].append(column_info)
 
-                            if row['constraint_type'] == "PRIMARY KEY":
-                                if column_name not in schema_info[table_name]["primary_keys"]:
-                                    schema_info[table_name]["primary_keys"].append(column_name)
+                            if row["constraint_type"] == "PRIMARY KEY":
+                                if (
+                                    column_name
+                                    not in schema_info[table_name]["primary_keys"]
+                                ):
+                                    schema_info[table_name]["primary_keys"].append(
+                                        column_name
+                                    )
 
                     return schema_info
 
@@ -116,8 +124,12 @@ class PostgreSQLProvider(BaseDatabaseProvider):
             # 列信息
             for column in table_info.get("columns", []):
                 nullable = "NULL" if column["nullable"] else "NOT NULL"
-                default = f" DEFAULT {column['default']}" if column.get("default") else ""
-                formatted_schema += f"  - {column['name']}: {column['type']} {nullable}{default}\n"
+                default = (
+                    f" DEFAULT {column['default']}" if column.get("default") else ""
+                )
+                formatted_schema += (
+                    f"  - {column['name']}: {column['type']} {nullable}{default}\n"
+                )
 
             # 主键
             if table_info.get("primary_keys"):
@@ -171,7 +183,5 @@ class PostgreSQLProvider(BaseDatabaseProvider):
         """获取提供商信息"""
         info = super().get_info()
         if self.is_initialized:
-            info.update({
-                "database_url": "***configured***"  # 隐藏敏感信息
-            })
+            info.update({"database_url": "***configured***"})  # 隐藏敏感信息
         return info

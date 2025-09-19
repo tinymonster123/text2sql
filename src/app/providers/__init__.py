@@ -7,5 +7,5 @@ __all__ = [
     "ProviderRegistry",
     "BaseLLMProvider",
     "BaseVectorDBProvider",
-    "BaseDatabaseProvider"
+    "BaseDatabaseProvider",
 ]

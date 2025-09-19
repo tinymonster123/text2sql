@@ -14,9 +14,7 @@ class Text2SQLEngine(AIEngine):
 
     def __init__(self):
         super().__init__(
-            name="text2sql_engine",
-            version="1.0.0",
-            description="自然语言转SQL查询引擎"
+            name="text2sql_engine", version="1.0.0", description="自然语言转SQL查询引擎"
         )
         self.text2sql_service: Text2SQL = None
 
@@ -27,17 +25,19 @@ class Text2SQLEngine(AIEngine):
             self.text2sql_service = Text2SQL()
 
             # 添加能力描述
-            self.add_capability(EngineCapability(
-                name="natural_language_to_sql",
-                description="将自然语言查询转换为SQL语句",
-                input_types=["text"],
-                output_types=["sql", "json"],
-                parameters={
-                    "supports_validation": True,
-                    "supports_few_shot": True,
-                    "supports_schema_extraction": True
-                }
-            ))
+            self.add_capability(
+                EngineCapability(
+                    name="natural_language_to_sql",
+                    description="将自然语言查询转换为SQL语句",
+                    input_types=["text"],
+                    output_types=["sql", "json"],
+                    parameters={
+                        "supports_validation": True,
+                        "supports_few_shot": True,
+                        "supports_schema_extraction": True,
+                    },
+                )
+            )
 
             self.is_initialized = True
             logger.info(f"Text2SQL引擎初始化成功")
@@ -72,8 +72,8 @@ class Text2SQLEngine(AIEngine):
                 "metadata": {
                     "engine": self.name,
                     "version": self.version,
-                    "query": query
-                }
+                    "query": query,
+                },
             }
 
         except Exception as e:
@@ -88,8 +88,8 @@ class Text2SQLEngine(AIEngine):
                 "metadata": {
                     "engine": self.name,
                     "version": self.version,
-                    "query": input_data.get("query", "")
-                }
+                    "query": input_data.get("query", ""),
+                },
             }
 
     def get_capabilities(self) -> List[EngineCapability]:
@@ -108,7 +108,7 @@ class Text2SQLEngine(AIEngine):
                     "text2sql_service": "healthy",
                     "schema_manager": "healthy",
                     "vector_store": "healthy",
-                    "llm": "healthy"
+                    "llm": "healthy",
                 }
             else:
                 base_health["healthy"] = False

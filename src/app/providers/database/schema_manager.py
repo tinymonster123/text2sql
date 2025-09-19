@@ -58,7 +58,6 @@ class SchemaManager:
             logger.error(f"提取数据库结构失败: {str(e)}")
             raise
 
-
     def _save_schema_cache(self, schema_info):
         """保存Schema信息到缓存文件
 

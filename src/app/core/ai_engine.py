@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EngineCapability:
     """引擎能力描述"""
+
     name: str
     description: str
     input_types: List[str]
@@ -74,7 +75,7 @@ class AIEngine(ABC):
             "version": self.version,
             "description": self.description,
             "status": "initialized" if self.is_initialized else "not_initialized",
-            "capabilities_count": len(self._capabilities)
+            "capabilities_count": len(self._capabilities),
         }
 
     def health_check(self) -> Dict[str, Any]:
@@ -83,7 +84,7 @@ class AIEngine(ABC):
             "healthy": self.is_initialized,
             "engine": self.name,
             "version": self.version,
-            "timestamp": None  # 实现时添加时间戳
+            "timestamp": None,  # 实现时添加时间戳
         }
 
     def shutdown(self) -> bool:

@@ -81,7 +81,9 @@ class SQLValidator:
                 return False, error_message, []
 
             # 执行SQL并获取结果
-            success, error_msg, columns = self.db_provider.execute_sql(self._limit_query_results(sql_query))
+            success, error_msg, columns = self.db_provider.execute_sql(
+                self._limit_query_results(sql_query)
+            )
 
             if success:
                 logger.info(f"SQL验证成功, 列名: {columns}")

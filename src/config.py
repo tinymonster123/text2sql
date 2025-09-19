@@ -24,3 +24,5 @@ class Config:
     CHROMA_TENANT = os.getenv("CHROMA_TENANT")
     CHROMA_DATABASE = os.getenv("CHROMA_DATABASE")
     CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "melomane_collection")
+
+    HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")

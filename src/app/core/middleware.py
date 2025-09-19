@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class EngineType(Enum):
     """AI引擎类型枚举"""
+
     TEXT_TO_SQL = "text_to_sql"
     TEXT_TO_CODE = "text_to_code"
     DOCUMENT_QA = "document_qa"
@@ -20,6 +21,7 @@ class EngineType(Enum):
 @dataclass
 class EngineCapability:
     """引擎能力描述"""
+
     name: str
     description: str
     input_types: List[str]
@@ -30,6 +32,7 @@ class EngineCapability:
 @dataclass
 class ProcessingContext:
     """处理上下文"""
+
     user_id: Optional[str] = None
     session_id: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -44,12 +47,14 @@ class AIMiddleware:
     """
 
     def __init__(self):
-        self._engines: Dict[str, 'AIEngine'] = {}
+        self._engines: Dict[str, "AIEngine"] = {}
         self._engine_types: Dict[EngineType, List[str]] = {}
-        self._middleware_hooks: List['MiddlewareHook'] = []
+        self._middleware_hooks: List["MiddlewareHook"] = []
         self.is_initialized = False
 
-    def register_engine(self, engine: 'AIEngine', engine_type: EngineType = EngineType.CUSTOM) -> bool:
+    def register_engine(
+        self, engine: "AIEngine", engine_type: EngineType = EngineType.CUSTOM
+    ) -> bool:
         """注册AI引擎
 
         Args:
@@ -98,16 +103,16 @@ class AIMiddleware:
             logger.error(f"注销引擎失败: {e}")
             return False
 
-    def get_engine(self, engine_name: str) -> Optional['AIEngine']:
+    def get_engine(self, engine_name: str) -> Optional["AIEngine"]:
         """获取指定引擎"""
         return self._engines.get(engine_name)
 
-    def get_engines_by_type(self, engine_type: EngineType) -> List['AIEngine']:
+    def get_engines_by_type(self, engine_type: EngineType) -> List["AIEngine"]:
         """根据类型获取引擎列表"""
         engine_names = self._engine_types.get(engine_type, [])
         return [self._engines[name] for name in engine_names if name in self._engines]
 
-    def add_middleware_hook(self, hook: 'MiddlewareHook'):
+    def add_middleware_hook(self, hook: "MiddlewareHook"):
         """添加中间件钩子"""
         self._middleware_hooks.append(hook)
 
@@ -115,7 +120,7 @@ class AIMiddleware:
         self,
         engine_name: str,
         input_data: Dict[str, Any],
-        context: Optional[ProcessingContext] = None
+        context: Optional[ProcessingContext] = None,
     ) -> Dict[str, Any]:
         """处理请求的统一入口
 
@@ -155,17 +160,13 @@ class AIMiddleware:
                 "engine": engine_name,
                 "context": {
                     "user_id": context.user_id,
-                    "session_id": context.session_id
-                }
+                    "session_id": context.session_id,
+                },
             }
 
         except Exception as e:
             logger.error(f"处理请求失败: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "engine": engine_name
-            }
+            return {"success": False, "error": str(e), "engine": engine_name}
 
     def get_system_info(self) -> Dict[str, Any]:
         """获取系统信息"""
@@ -173,8 +174,10 @@ class AIMiddleware:
             "middleware_version": "1.0.0",
             "total_engines": len(self._engines),
             "engine_types": {k.value: len(v) for k, v in self._engine_types.items()},
-            "engines": {name: engine.get_info() for name, engine in self._engines.items()},
-            "hooks_count": len(self._middleware_hooks)
+            "engines": {
+                name: engine.get_info() for name, engine in self._engines.items()
+            },
+            "hooks_count": len(self._middleware_hooks),
         }
 
 
@@ -183,20 +186,14 @@ class MiddlewareHook(ABC):
 
     @abstractmethod
     async def before_process(
-        self,
-        engine_name: str,
-        input_data: Dict[str, Any],
-        context: ProcessingContext
+        self, engine_name: str, input_data: Dict[str, Any], context: ProcessingContext
     ) -> Dict[str, Any]:
         """处理前钩子"""
         pass
 
     @abstractmethod
     async def after_process(
-        self,
-        engine_name: str,
-        result: Dict[str, Any],
-        context: ProcessingContext
+        self, engine_name: str, result: Dict[str, Any], context: ProcessingContext
     ) -> Dict[str, Any]:
         """处理后钩子"""
         pass
@@ -206,11 +203,15 @@ class MiddlewareHook(ABC):
 class LoggingHook(MiddlewareHook):
     """日志记录钩子"""
 
-    async def before_process(self, engine_name: str, input_data: Dict[str, Any], context: ProcessingContext) -> Dict[str, Any]:
+    async def before_process(
+        self, engine_name: str, input_data: Dict[str, Any], context: ProcessingContext
+    ) -> Dict[str, Any]:
         logger.info(f"开始处理请求 - 引擎: {engine_name}, 用户: {context.user_id}")
         return input_data
 
-    async def after_process(self, engine_name: str, result: Dict[str, Any], context: ProcessingContext) -> Dict[str, Any]:
+    async def after_process(
+        self, engine_name: str, result: Dict[str, Any], context: ProcessingContext
+    ) -> Dict[str, Any]:
         success = result.get("success", False)
         logger.info(f"请求处理完成 - 引擎: {engine_name}, 成功: {success}")
         return result
@@ -224,11 +225,15 @@ class MetricsHook(MiddlewareHook):
         self.success_count = 0
         self.error_count = 0
 
-    async def before_process(self, engine_name: str, input_data: Dict[str, Any], context: ProcessingContext) -> Dict[str, Any]:
+    async def before_process(
+        self, engine_name: str, input_data: Dict[str, Any], context: ProcessingContext
+    ) -> Dict[str, Any]:
         self.request_count += 1
         return input_data
 
-    async def after_process(self, engine_name: str, result: Dict[str, Any], context: ProcessingContext) -> Dict[str, Any]:
+    async def after_process(
+        self, engine_name: str, result: Dict[str, Any], context: ProcessingContext
+    ) -> Dict[str, Any]:
         if result.get("success", False):
             self.success_count += 1
         else:
@@ -240,5 +245,5 @@ class MetricsHook(MiddlewareHook):
             "total_requests": self.request_count,
             "successful_requests": self.success_count,
             "failed_requests": self.error_count,
-            "success_rate": self.success_count / max(self.request_count, 1) * 100
+            "success_rate": self.success_count / max(self.request_count, 1) * 100,
         }

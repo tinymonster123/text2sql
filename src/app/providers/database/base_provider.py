@@ -47,5 +47,5 @@ class BaseDatabaseProvider(ABC):
         return {
             "name": self.name,
             "type": "database",
-            "initialized": self.is_initialized
+            "initialized": self.is_initialized,
         }

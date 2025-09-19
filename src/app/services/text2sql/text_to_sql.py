@@ -1,10 +1,10 @@
 # pylint: disable=astroid-error
 # -*- coding: utf-8 -*-
-from .providers.database.schema_manager import SchemaManager
-from .providers.database.sql_validator import SQLValidator
-from .rag.embedding.bert_embedding_model import BertEmbedding
-from .providers.vectordb.chroma_vector_store import ChromaVectorStore
-from .providers.llm.llm import LLM
+from app.providers.database.schema_manager import SchemaManager
+from app.providers.database.sql_validator import SQLValidator
+from app.providers.vectordb.chroma_vector_store import ChromaVectorStore
+from .embedding.bert_embedding_model import BertEmbedding
+from .llm.llm import LLM
 import logging
 from typing import Dict, Any
 

@@ -3,7 +3,7 @@ import logging
 import uuid
 import chromadb
 from chromadb.api import ClientAPI
-from ...config import Config
+from config import Config
 
 logger = logging.getLogger(__name__)
 

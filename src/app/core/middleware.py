@@ -1,3 +1,4 @@
+from .ai_engine import EngineCapability
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional, Type
 from dataclasses import dataclass, field
@@ -16,17 +17,6 @@ class EngineType(Enum):
     CHAT = "chat"
     EMBEDDING = "embedding"
     CUSTOM = "custom"
-
-
-@dataclass
-class EngineCapability:
-    """引擎能力描述"""
-
-    name: str
-    description: str
-    input_types: List[str]
-    output_types: List[str]
-    parameters: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

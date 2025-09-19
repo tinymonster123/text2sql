@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from ..database import PostgreSQLProvider
-from ...config import Config
+from app.providers.database import PostgreSQLProvider
+from config import Config
 import json
 import os
 import logging

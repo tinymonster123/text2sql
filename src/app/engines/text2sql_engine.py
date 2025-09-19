@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from ..core.ai_engine import AIEngine, EngineCapability
-from ..text_to_sql import Text2SQL
+from ..services.text2sql.text_to_sql import Text2SQL
 import logging
 
 logger = logging.getLogger(__name__)

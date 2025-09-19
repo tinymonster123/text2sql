@@ -4,8 +4,8 @@ import os
 import re
 import shutil
 import sqlparse
-from ..database import PostgreSQLProvider
-from ...config import Config
+from app.providers.database import PostgreSQLProvider
+from config import Config
 from typing import Tuple, List, Optional
 
 logger = logging.getLogger(__name__)

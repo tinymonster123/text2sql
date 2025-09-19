@@ -9,3 +9,9 @@
 *.csv
 
 Modal.*
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python

@@ -159,7 +159,7 @@ def create_app(middleware=None):
             raise HTTPException(status_code=503, detail="中间件未初始化")
 
         try:
-            from core.middleware import ProcessingContext
+            from app.core.middleware import ProcessingContext
 
             context = ProcessingContext(
                 user_id=data.get("user_id"),
@@ -191,7 +191,7 @@ async def process_sql_request(request: SQLRequest, middleware) -> SQLResponse:
     try:
         logger.info(f"收到SQL生成请求: {request.query}")
 
-        from core.middleware import ProcessingContext
+        from app.core.middleware import ProcessingContext
 
         context = ProcessingContext(
             user_id=request.user_id, session_id=request.session_id

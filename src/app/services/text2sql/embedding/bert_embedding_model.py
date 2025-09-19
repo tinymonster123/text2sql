@@ -1,9 +1,10 @@
 import random
 import torch
 from sentence_transformers import SentenceTransformer
-from ...config import Config
+from config import Config
 from sklearn.metrics.pairwise import cosine_similarity
 import logging
+import os
 
 # 配置日志
 logging.basicConfig(
@@ -52,6 +53,12 @@ class BertEmbedding:
     def load_model(self):
         """加载预训练的SentenceTransformer模型"""
         try:
+            # 设置Hugging Face端点
+            hf_endpoint = Config.HF_ENDPOINT
+            if hf_endpoint:
+                os.environ["HF_ENDPOINT"] = hf_endpoint
+                logger.info(f"设置Hugging Face端点: {hf_endpoint}")
+
             self.model = SentenceTransformer(self.model_name, device=self.device)
             self.vector_size = self.model.get_sentence_embedding_dimension()
             logger.info(

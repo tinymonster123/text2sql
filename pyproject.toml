@@ -38,6 +38,7 @@ dependencies = [
     "black>=25.1.0",
     "pytest>=8.3.0",
     "datacompy>=0.18.0",
+    "sqlmodel>=0.0.25",
 ]
 
 [project.optional-dependencies]

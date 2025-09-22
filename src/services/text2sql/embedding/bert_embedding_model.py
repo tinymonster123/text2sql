@@ -1,7 +1,7 @@
 import random
 import torch
 from sentence_transformers import SentenceTransformer
-from config import Config
+from melomane_ai.src.core.config import Config
 from sklearn.metrics.pairwise import cosine_similarity
 import logging
 import os

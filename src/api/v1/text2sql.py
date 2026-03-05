@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional, Any
+# pylint: disable=astroid-error
+from fastapi import APIRouter, HTTPException
+from typing import Optional
 import logging
+import time
 
 from ...schema.api_responses import (
     Text2SqlRequest,
     Text2SqlResult,
     Text2SqlResponse,
-    ErrorResponse,
 )
+from ...services.text2sql import Text2SQL
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +21,18 @@ router = APIRouter(
         404: {"description": "Not Found"},
         422: {"description": "Validation Error"},
         500: {"description": "Internal Server Error"},
-        503: {"description": "Service Unavailable"},
     },
 )
 
-
-def get_middleware() -> Optional[Any]:
-    """依赖注入占位器：目前返回 None（未实现中间件注入）。"""
-    return None
+# 启动时初始化 Text2SQL 实例
+text2sql = Text2SQL()
 
 
 @router.post(
     "/generate_sql",
     response_model=Text2SqlResponse,
     summary="生成 SQL",
-    description="将自然语言查询转换为 SQL（模拟实现，需中间件支持）。",
+    description="将自然语言查询转换为 SQL。",
     responses={
         200: {
             "description": "SQL 生成成功",
@@ -46,13 +45,7 @@ def get_middleware() -> Optional[Any]:
                         "data": {
                             "sql": "SELECT * FROM albums WHERE genre = 'pop'",
                             "confidence": 0.95,
-                            "columns": [
-                                "id",
-                                "title",
-                                "artist_id",
-                                "release_date",
-                                "genre",
-                            ],
+                            "columns": ["id", "title", "artist_id", "release_date", "genre"],
                             "similar_examples": [],
                             "schema_info": "albums table schema",
                             "metadata": {"processing_time": "0.5s"},
@@ -61,64 +54,40 @@ def get_middleware() -> Optional[Any]:
                 }
             },
         },
-        422: {
-            "description": "请求参数错误或无法生成 SQL",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "success": False,
-                        "timestamp": "2025-09-22T16:00:00Z",
-                        "message": "SQL 生成失败",
-                        "error_code": "SQL_GENERATION_FAILED",
-                        "error_details": {"reason": "invalid input"},
-                    }
-                }
-            },
-        },
     },
 )
-async def generate_sql(
-    request: Text2SqlRequest, middleware=Depends(get_middleware)
-) -> Text2SqlResponse:
-    """将自然语言查询转换为 SQL（目前为模拟返回，依赖中间件实现真实逻辑）。
-
-    Args:
-        request: Text2SqlRequest 包含 query, user_id, session_id, options 等字段。
-        middleware: 通过依赖注入获得的中间件实例（目前返回 None）。
-
-    Returns:
-        Text2SqlResponse: 包含生成的 SQL 及相关元数据。
-    """
-    if not middleware:
-        # 中间件未注入，返回服务不可用（注意：上层会将此转为 HTTP 503）
-        raise HTTPException(status_code=503, detail="中间件未初始化，无法生成真实 SQL")
-
+async def generate_sql(request: Text2SqlRequest) -> Text2SqlResponse:
     try:
         logger.info(
             f"Text2SQL request: user_id={request.user_id}, query='{request.query}'"
         )
 
-        # 简单校验
         if not request.query or len(request.query.strip()) == 0:
             raise HTTPException(status_code=422, detail="查询内容为空")
 
-        temp_sql = f"-- NL Query: {request.query}\n-- Generated SQL (placeholder)"
+        start_time = time.time()
+        result_dict = text2sql.generate_sql(request.query)
+        processing_time = f"{time.time() - start_time:.2f}s"
+
+        if not result_dict["success"]:
+            raise HTTPException(
+                status_code=422,
+                detail=result_dict.get("error", "SQL 生成失败"),
+            )
 
         result = Text2SqlResult(
-            sql=temp_sql,
-            confidence=0.0,
-            columns=[],
-            similar_examples=[],
-            schema_info=None,
+            sql=result_dict["sql"],
+            columns=result_dict.get("columns", []),
+            similar_examples=result_dict.get("similar_examples", []),
+            schema_info=result_dict.get("schema_info"),
             metadata={
-                "status": "pending_middleware_implementation",
-                "query_length": len(request.query),
+                "processing_time": processing_time,
                 "user_id": request.user_id,
                 "session_id": request.session_id,
             },
         )
 
-        return Text2SqlResponse(success=True, data=result, message="模拟 SQL 生成成功")
+        return Text2SqlResponse(success=True, data=result, message="SQL 生成成功")
 
     except HTTPException:
         raise
@@ -137,13 +106,12 @@ async def generate_sql_get(
     query: str,
     user_id: Optional[str] = None,
     session_id: Optional[str] = None,
-    middleware=Depends(get_middleware),
 ) -> Text2SqlResponse:
     """GET 版本的生成 SQL 接口，内部复用 POST 实现。"""
     request = Text2SqlRequest(
         query=query, user_id=user_id, session_id=session_id, options={}
     )
-    return await generate_sql(request, middleware)
+    return await generate_sql(request)
 
 
 @router.get(

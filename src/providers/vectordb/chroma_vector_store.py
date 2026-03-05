@@ -3,19 +3,19 @@ import logging
 import uuid
 import chromadb
 from chromadb.api import ClientAPI
-from melomane_ai.src.core.config import Config
+from src.core.config import Config
 
 logger = logging.getLogger(__name__)
 
 
 class ChromaVectorStore:
-    def __init__(self):
+    def __init__(self, collection_name=None):
         try:
             self.client = self.get_chroma_client()
 
             self.client.heartbeat()
 
-            self.collection_name = Config.CHROMA_COLLECTION_NAME
+            self.collection_name = collection_name or Config.CHROMA_COLLECTION_NAME
 
             self.collection = self.client.get_or_create_collection(
                 name=self.collection_name,
@@ -30,13 +30,13 @@ class ChromaVectorStore:
 
     @staticmethod
     def get_chroma_client() -> ClientAPI:
-        if _client is None:
-            _client = chromadb.CloudClient(
+        if ChromaVectorStore._client is None:
+            ChromaVectorStore._client = chromadb.CloudClient(
                 api_key=Config.CHROMA_API_KEY,
                 tenant=Config.CHROMA_TENANT,
                 database=Config.CHROMA_DATABASE,
             )
-        return _client
+        return ChromaVectorStore._client
 
     def add_vector(self, vector, metadata):
         self.add_vectors([vector], [metadata])

@@ -4,8 +4,8 @@ import os
 import re
 import shutil
 import sqlparse
-from app.providers.database import PostgreSQLProvider
-from melomane_ai.src.core.config import Config
+from src.providers.database import PostgreSQLProvider
+from src.core.config import Config
 from typing import Tuple, List, Optional
 
 logger = logging.getLogger(__name__)

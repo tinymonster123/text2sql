@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from app.providers.database import PostgreSQLProvider
-from melomane_ai.src.core.config import Config
+from src.providers.database import PostgreSQLProvider
+from src.core.config import Config
 import json
 import os
 import logging
@@ -86,3 +86,24 @@ class SchemaManager:
 
         # 使用PostgreSQL provider的format_schema方法
         return self.db_provider.format_schema(schema_info)
+
+    def format_partial_schema(self, table_names, schema_info=None):
+        """只格式化指定表的Schema信息
+
+        Args:
+            table_names (list): 需要格式化的表名列表
+            schema_info (dict, optional): 完整Schema信息。如果为None，则重新提取
+
+        Returns:
+            str: 格式化后的部分Schema字符串
+        """
+        if schema_info is None:
+            schema_info = self.extract_schema()
+
+        partial_schema = {
+            name: info
+            for name, info in schema_info.items()
+            if name in table_names
+        }
+
+        return self.db_provider.format_schema(partial_schema)

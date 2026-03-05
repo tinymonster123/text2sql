@@ -25,4 +25,12 @@ class Config:
     CHROMA_DATABASE = os.getenv("CHROMA_DATABASE")
     CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "melomane_collection")
 
+    # Re-ranker配置
+    RERANKER_MODEL_NAME = os.getenv("RERANKER_MODEL_NAME", "BAAI/bge-reranker-base")
+
+    # Schema向量集合配置
+    SCHEMA_COLLECTION_NAME = os.getenv(
+        "SCHEMA_COLLECTION_NAME", "melomane_schema_collection"
+    )
+
     HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")

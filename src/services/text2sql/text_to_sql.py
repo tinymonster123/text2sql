@@ -1,10 +1,13 @@
 # pylint: disable=astroid-error
 # -*- coding: utf-8 -*-
-from app.providers.database.schema_manager import SchemaManager
-from app.providers.database.sql_validator import SQLValidator
-from app.providers.vectordb.chroma_vector_store import ChromaVectorStore
+from src.providers.database.schema_manager import SchemaManager
+from src.providers.database.sql_validator import SQLValidator
+from src.providers.vectordb.chroma_vector_store import ChromaVectorStore
 from .embedding.bert_embedding_model import BertEmbedding
+from .chunking.schema_chunker import SchemaChunker
+from .reranking.cross_encoder_reranker import CrossEncoderReranker
 from .llm.llm import LLM
+from src.core.config import Config
 import logging
 from typing import Dict, Any
 
@@ -28,8 +31,13 @@ class Text2SQL:
         self.schema_manager = SchemaManager()
         self.bert_embedding_model = BertEmbedding()
         self.vector_store = ChromaVectorStore()
+        self.schema_vector_store = ChromaVectorStore(
+            collection_name=Config.SCHEMA_COLLECTION_NAME
+        )
         self.llm = LLM()
         self.sql_validator = SQLValidator()
+        self.schema_chunker = SchemaChunker()
+        self.reranker = CrossEncoderReranker()
 
     def generate_sql(self, prompt: str) -> Dict[str, Any]:
         """生成SQL查询语句
@@ -49,9 +57,6 @@ class Text2SQL:
             # 提取表结构
             logger.info("开始提取数据库结构")
             schema_info = self.schema_manager.extract_schema()
-            format_schema_for_prompt = self.schema_manager.format_schema_for_prompt(
-                schema_info
-            )
             logger.info("数据库结构提取完成")
 
             # 将prompt转换为嵌入向量
@@ -59,22 +64,40 @@ class Text2SQL:
             prompt_to_vector = self.bert_embedding_model.get_embedding(prompt)
             logger.info("向量嵌入完成")
 
-            # 从向量存储库中搜索相似问题
+            # Schema Chunking：检索相关表，生成精简schema
+            logger.info("开始Schema Chunking")
+            self.schema_chunker.ensure_indexed(
+                schema_info, self.bert_embedding_model, self.schema_vector_store
+            )
+            relevant_tables = self.schema_chunker.retrieve_relevant_tables(
+                prompt_to_vector, self.schema_vector_store, top_k=3
+            )
+            format_schema = self.schema_manager.format_partial_schema(
+                relevant_tables, schema_info
+            )
+            logger.info(f"Schema Chunking完成，选中 {len(relevant_tables)} 个相关表")
+
+            # 召回 top-10 相似示例
             logger.info("开始搜索相似查询")
-            similar_example = self.vector_store.search(prompt_to_vector)
-            examples = [metadata for _, metadata in similar_example]
-            logger.info(f"找到 {len(examples)} 个相似查询")
+            similar_example = self.vector_store.search(prompt_to_vector, top_k=10)
+            candidates = [metadata for _, metadata in similar_example]
+            logger.info(f"找到 {len(candidates)} 个候选查询")
+
+            # Re-ranking：精排取 top-3
+            logger.info("开始Re-ranking")
+            examples = self.reranker.rerank(prompt, candidates, top_n=3)
+            logger.info(f"Re-ranking完成，选出 {len(examples)} 个高质量示例")
             if examples:
                 import json
 
                 logger.info(
-                    f"检索到的 Few-shot 示例:\n{json.dumps(examples, indent=2, ensure_ascii=False)}"
+                    f"重排后的 Few-shot 示例:\n{json.dumps(examples, indent=2, ensure_ascii=False)}"
                 )
 
             # 使用LLM生成SQL语句
             logger.info("开始生成SQL语句")
             sql = self.llm.get_response(
-                prompt, format_schema_for_prompt, few_shot_example=examples
+                prompt, format_schema, few_shot_example=examples
             )
             logger.info(f"生成的SQL: {sql}")
 
@@ -112,7 +135,7 @@ class Text2SQL:
                 "error": error_message if not is_sql_safe else None,
                 "columns": columns if is_sql_safe else [],
                 "similar_examples": examples[:3],
-                "schema_info": format_schema_for_prompt,
+                "schema_info": format_schema,
             }
 
         except Exception as e:

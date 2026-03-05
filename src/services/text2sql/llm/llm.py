@@ -1,6 +1,6 @@
 import logging
 from openai import OpenAI
-from melomane_ai.src.core.config import Config
+from src.core.config import Config
 from .prompts import SYSTEM_PROMPT, FEW_SHOT_EXAMPLES
 
 logger = logging.getLogger(__name__)

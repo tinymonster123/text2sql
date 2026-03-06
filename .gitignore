@@ -15,3 +15,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+data/
+
+.deepeval/

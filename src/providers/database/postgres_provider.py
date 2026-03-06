@@ -105,6 +105,35 @@ class PostgreSQLProvider(BaseDatabaseProvider):
                                         column_name
                                     )
 
+                    # 查询外键关系
+                    fk_query = """
+                    SELECT
+                        tc.table_name AS from_table,
+                        kcu.column_name AS from_column,
+                        ccu.table_name AS to_table,
+                        ccu.column_name AS to_column
+                    FROM information_schema.table_constraints tc
+                    JOIN information_schema.key_column_usage kcu
+                        ON tc.constraint_name = kcu.constraint_name
+                    JOIN information_schema.constraint_column_usage ccu
+                        ON tc.constraint_name = ccu.constraint_name
+                    WHERE tc.constraint_type = 'FOREIGN KEY'
+                        AND tc.table_schema = 'public';
+                    """
+                    cursor.execute(fk_query)
+                    fk_results = cursor.fetchall()
+
+                    for fk in fk_results:
+                        from_table = fk["from_table"]
+                        if from_table in schema_info:
+                            fk_info = {
+                                "from_column": fk["from_column"],
+                                "to_table": fk["to_table"],
+                                "to_column": fk["to_column"],
+                            }
+                            if fk_info not in schema_info[from_table]["foreign_keys"]:
+                                schema_info[from_table]["foreign_keys"].append(fk_info)
+
                     return schema_info
 
         except Exception as e:

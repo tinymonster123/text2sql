@@ -8,6 +8,7 @@ from .chunking.schema_chunker import SchemaChunker
 from .reranking.cross_encoder_reranker import CrossEncoderReranker
 from .llm.llm import LLM
 from src.core.config import Config
+from deepeval.tracing import observe, update_current_span
 import logging
 from typing import Dict, Any
 
@@ -39,6 +40,89 @@ class Text2SQL:
         self.schema_chunker = SchemaChunker()
         self.reranker = CrossEncoderReranker()
 
+    @observe(name="embed_query", type="embedding")
+    def _embed_query(self, prompt: str):
+        """将用户查询转换为向量"""
+        vector = self.bert_embedding_model.get_embedding(prompt)
+        update_current_span(input=prompt, output=f"vector dim={len(vector)}")
+        return vector
+
+    @observe(name="schema_chunking", type="tool")
+    def _schema_chunking(self, schema_info, query_vector):
+        """Schema Chunking：检索相关表"""
+        self.schema_chunker.ensure_indexed(
+            schema_info, self.bert_embedding_model, self.schema_vector_store
+        )
+        relevant_tables = self.schema_chunker.retrieve_relevant_tables(
+            query_vector, self.schema_vector_store, top_k=3, schema_info=schema_info
+        )
+        format_schema = self.schema_manager.format_partial_schema(
+            relevant_tables, schema_info
+        )
+        update_current_span(
+            input=f"query_vector (dim={len(query_vector)})",
+            output=f"tables: {relevant_tables}",
+        )
+        return relevant_tables, format_schema
+
+    @observe(name="example_retrieval", type="retriever")
+    def _retrieve_examples(self, prompt: str, query_vector):
+        """召回 + Re-ranking"""
+        similar_example = self.vector_store.search(query_vector, top_k=10)
+        candidates = [metadata for _, metadata in similar_example]
+        examples = self.reranker.rerank(prompt, candidates, top_n=3)
+        update_current_span(
+            input=prompt,
+            output=f"candidates={len(candidates)} -> reranked={len(examples)}",
+        )
+        return examples
+
+    @observe(name="llm_generate_sql", type="llm")
+    def _llm_generate(self, prompt: str, format_schema: str, examples: list):
+        """LLM 生成 SQL"""
+        sql = self.llm.get_response(prompt, format_schema, few_shot_example=examples)
+        update_current_span(input=prompt, output=sql)
+        return sql
+
+    @observe(name="sql_validation", type="tool")
+    def _validate_sql(self, sql: str):
+        """SQL 验证"""
+        is_safe, error_message, columns = self.sql_validator.test_execute(sql)
+        if not is_safe and any(
+            error in error_message.lower()
+            for error in ["space left on device", "disk full"]
+        ):
+            is_safe, syntax_error = self.sql_validator.validate_syntax(sql)
+            if is_safe:
+                columns = []
+                error_message = "SQL语法正确，但服务器磁盘空间不足，无法执行"
+            else:
+                error_message = syntax_error
+        update_current_span(
+            input=sql,
+            output=f"valid={is_safe}, columns={columns}",
+        )
+        return is_safe, error_message, columns
+
+    MAX_CORRECTION_RETRIES = 2
+
+    @observe(name="sql_auto_correction", type="llm")
+    def _auto_correct_sql(self, prompt: str, sql: str, error_message: str, format_schema: str):
+        """基于执行错误反馈自动纠正 SQL"""
+        correction_prompt = (
+            f"以下 SQL 执行出错，请根据错误信息修正。\n\n"
+            f"用户问题: {prompt}\n"
+            f"原始 SQL: {sql}\n"
+            f"错误信息: {error_message}\n\n"
+            f"数据库结构:\n{format_schema}\n"
+            f"请仅返回修正后的 SQL，不要解释。"
+        )
+        corrected_sql = self.llm.get_response(correction_prompt, format_schema)
+        update_current_span(input=f"error: {error_message}", output=corrected_sql)
+        logger.info(f"自动纠错生成的SQL: {corrected_sql}")
+        return corrected_sql
+
+    @observe(name="text2sql_pipeline", type="agent")
     def generate_sql(self, prompt: str) -> Dict[str, Any]:
         """生成SQL查询语句
 
@@ -57,67 +141,38 @@ class Text2SQL:
             # 提取表结构
             logger.info("开始提取数据库结构")
             schema_info = self.schema_manager.extract_schema()
-            logger.info("数据库结构提取完成")
 
             # 将prompt转换为嵌入向量
             logger.info(f"开始处理用户查询: {prompt}")
-            prompt_to_vector = self.bert_embedding_model.get_embedding(prompt)
-            logger.info("向量嵌入完成")
+            prompt_to_vector = self._embed_query(prompt)
 
             # Schema Chunking：检索相关表，生成精简schema
             logger.info("开始Schema Chunking")
-            self.schema_chunker.ensure_indexed(
-                schema_info, self.bert_embedding_model, self.schema_vector_store
-            )
-            relevant_tables = self.schema_chunker.retrieve_relevant_tables(
-                prompt_to_vector, self.schema_vector_store, top_k=3
-            )
-            format_schema = self.schema_manager.format_partial_schema(
-                relevant_tables, schema_info
-            )
+            relevant_tables, format_schema = self._schema_chunking(schema_info, prompt_to_vector)
             logger.info(f"Schema Chunking完成，选中 {len(relevant_tables)} 个相关表")
 
-            # 召回 top-10 相似示例
-            logger.info("开始搜索相似查询")
-            similar_example = self.vector_store.search(prompt_to_vector, top_k=10)
-            candidates = [metadata for _, metadata in similar_example]
-            logger.info(f"找到 {len(candidates)} 个候选查询")
-
-            # Re-ranking：精排取 top-3
-            logger.info("开始Re-ranking")
-            examples = self.reranker.rerank(prompt, candidates, top_n=3)
+            # 召回 + Re-ranking
+            logger.info("开始检索和Re-ranking")
+            examples = self._retrieve_examples(prompt, prompt_to_vector)
             logger.info(f"Re-ranking完成，选出 {len(examples)} 个高质量示例")
-            if examples:
-                import json
-
-                logger.info(
-                    f"重排后的 Few-shot 示例:\n{json.dumps(examples, indent=2, ensure_ascii=False)}"
-                )
 
             # 使用LLM生成SQL语句
             logger.info("开始生成SQL语句")
-            sql = self.llm.get_response(
-                prompt, format_schema, few_shot_example=examples
-            )
+            sql = self._llm_generate(prompt, format_schema, examples)
             logger.info(f"生成的SQL: {sql}")
 
             # 验证生成的SQL
             logger.info("开始验证SQL")
-            is_sql_safe, error_message, columns = self.sql_validator.test_execute(sql)
+            is_sql_safe, error_message, columns = self._validate_sql(sql)
 
-            if not is_sql_safe and any(
-                error in error_message.lower()
-                for error in ["space left on device", "disk full"]
-            ):
-                logger.warning("服务器磁盘空间不足，尝试仅进行语法验证")
-                is_sql_safe, syntax_error = self.sql_validator.validate_syntax(sql)
+            # 执行反馈自动纠错：验证失败时重试
+            for retry in range(self.MAX_CORRECTION_RETRIES):
                 if is_sql_safe:
-                    columns = []
-                    error_message = "SQL语法正确，但服务器磁盘空间不足，无法执行"
-                    logger.info("SQL语法验证通过")
-                else:
-                    error_message = syntax_error
-                    logger.warning(f"SQL语法验证失败: {syntax_error}")
+                    break
+                logger.warning(f"SQL验证失败（第{retry+1}次纠错）: {error_message}")
+                sql = self._auto_correct_sql(prompt, sql, error_message, format_schema)
+                logger.info(f"纠错后的SQL: {sql}")
+                is_sql_safe, error_message, columns = self._validate_sql(sql)
 
             # 处理验证结果
             if is_sql_safe:

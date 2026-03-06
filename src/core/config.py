@@ -10,7 +10,7 @@ class Config:
     MUSIC_DATABASE_URL = os.getenv("MUSIC_DATABASE_URL")  # 音乐数据库
 
     # LLM配置
-    API_KEY = os.getenv("API_KEY")
+    API_KEY = os.getenv("LLM_API_KEY", os.getenv("API_KEY"))
     BASE_URL = os.getenv("BASE_URL")
     LLM_MODEL = os.getenv("LLM_MODEL", "qwen3-max-preview")
 

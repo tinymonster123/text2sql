@@ -88,14 +88,14 @@ class SchemaManager:
         return self.db_provider.format_schema(schema_info)
 
     def format_partial_schema(self, table_names, schema_info=None):
-        """只格式化指定表的Schema信息
+        """只格式化指定表的Schema信息，并附带自动提取的表关联关系
 
         Args:
             table_names (list): 需要格式化的表名列表
             schema_info (dict, optional): 完整Schema信息。如果为None，则重新提取
 
         Returns:
-            str: 格式化后的部分Schema字符串
+            str: 格式化后的部分Schema字符串（含表关联关系）
         """
         if schema_info is None:
             schema_info = self.extract_schema()
@@ -106,4 +106,23 @@ class SchemaManager:
             if name in table_names
         }
 
-        return self.db_provider.format_schema(partial_schema)
+        result = self.db_provider.format_schema(partial_schema)
+
+        # 从 schema_info 的外键信息动态生成 JOIN 关系
+        table_set = set(table_names)
+        relevant_joins = []
+        for table_name, table_info in schema_info.items():
+            if table_name not in table_set:
+                continue
+            for fk in table_info.get("foreign_keys", []):
+                if fk["to_table"] in table_set:
+                    join_clause = f"{table_name}.{fk['from_column']} = {fk['to_table']}.{fk['to_column']}"
+                    if join_clause not in relevant_joins:
+                        relevant_joins.append(join_clause)
+
+        if relevant_joins:
+            result += "\n表关联关系（JOIN 时必须使用）：\n"
+            for join in relevant_joins:
+                result += f"  - {join}\n"
+
+        return result

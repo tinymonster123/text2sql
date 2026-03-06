@@ -85,7 +85,7 @@ class LLM:
                     {"role": "user", "content": full_prompt},
                 ],
                 max_tokens=1024,
-                temperature=0.7,
+                temperature=0.2,
                 stream=False,
             )
 

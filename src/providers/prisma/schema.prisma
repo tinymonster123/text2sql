@@ -1,0 +1,61 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("MUSIC_DATABASE_URL")
+}
+
+generator client {
+    provider             = "prisma-client-py"
+    recursive_type_depth = 5
+}
+
+model music_audio_features {
+    track_id         Int        @id
+    danceability     String?
+    loudness         String?
+    acousticness     String?
+    instrumentalness String?
+    valence          String?
+    energy           String?
+    music_main       music_main @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model music_lyrics {
+    track_id   Int        @id
+    lyrics     String?
+    music_main music_main @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model music_main {
+    track_id             Int                   @id
+    artist_name          String?
+    track_name           String?
+    release_date         Int?
+    genre                String?
+    len                  String?
+    topic                String?
+    age                  String?
+    music_audio_features music_audio_features?
+    music_lyrics         music_lyrics?
+    music_topic_scores   music_topic_scores?
+}
+
+model music_topic_scores {
+    track_id                 Int        @id
+    dating                   String?
+    violence                 String?
+    world_life               String?    @map("world/life")
+    night_time               String?    @map("night/time")
+    shake_the_audience       String?    @map("shake the audience")
+    family_gospel            String?    @map("family/gospel")
+    romantic                 String?
+    communication            String?
+    obscene                  String?
+    music                    String?
+    movement_places          String?    @map("movement/places")
+    light_visual_perceptions String?    @map("light/visual perceptions")
+    family_spiritual         String?    @map("family/spiritual")
+    like_girls               String?    @map("like/girls")
+    sadness                  String?
+    feelings                 String?
+    music_main               music_main @relation(fields: [track_id], references: [track_id], onDelete: NoAction, onUpdate: NoAction)
+}

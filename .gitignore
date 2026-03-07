@@ -1,5 +1,21 @@
-.env*
+.env
 
 *.pem
 
 /venv
+
+.DS_Store
+
+*.csv
+
+Modal.*
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+data/
+
+.deepeval/
